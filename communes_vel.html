@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte des véhicules électriques par communes</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+
+    <style>
+        #map {
+            height: 600px;
+        }
+        .marker-cluster div {
+            background-color: orange;
+            color: purple;
+            font-weight: bold;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="font-family: Arial, sans-serif; color: purple;">Carte des véhicules électriques par communes</h1>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<script>
+    var map = L.map('map').setView([48.8566, 2.3522], 6); // Coordonnées de Paris
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        lang: 'fr'
+    }).addTo(map);
+
+    // ✅ Cluster avec somme des véhicules électriques
+    var markers = L.markerClusterGroup({
+        iconCreateFunction: function(cluster) {
+            var sum = 0;
+            cluster.getAllChildMarkers().forEach(function(marker) {
+                var value = marker.feature.properties.NB_VP_RECHARGEABLES_EL || 0;
+                sum += value;
+            });
+            return L.divIcon({
+                html: '<div><span>' + sum + '</span></div>',
+                className: 'marker-cluster',
+                iconSize: L.point(40, 40)
+            });
+        }
+    });
+
+    fetch('communes_vel.geojson')
+        .then(response => response.json())
+        .then(data => {
+            L.geoJSON(data, {
+                onEachFeature: function (feature, layer) {
+                    var nb = feature.properties.NB_VP_RECHARGEABLES_EL;
+                    layer.bindPopup("Véhicules électriques rechargeables : <b>" + nb + "</b>");
+                    markers.addLayer(layer);
+                }
+            });
+
+            map.addLayer(markers);
+        })
+        .catch(error => {
+            console.error("Erreur de chargement du fichier GeoJSON :", error);
+        });
+</script>
+
+</body>
+</html>
